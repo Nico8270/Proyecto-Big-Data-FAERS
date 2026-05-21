@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  hadoop-faers:
+    build:
+      context: .
+      dockerfile: hadoop/Dockerfile
+    container_name: faers_hadoop
+    hostname: hadoop-master
+    ports:
+      - "9870:9870"   # HDFS NameNode UI
+      - "8088:8088"   # YARN ResourceManager UI
+      - "9000:9000"   # HDFS namenode
+      - "50070:50070" # HDFS NameNode web
+    volumes:
+      - ./data:/workspace/data:ro
+      - ./scripts:/workspace/scripts
+      - ./hadoop:/workspace/hadoop
+      - ./outputs:/workspace/outputs
+    environment:
+      - HADOOP_HOME=/opt/hadoop
+      - JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+    networks:
+      - faers-network
+    command: ["--run"]  # Ejecutar pipeline al iniciar (opcional)
+
+networks:
+  faers-network:
+    driver: bridge
