@@ -1,7 +1,7 @@
 """
 src/cleaning/s04_limpiar_indications.py
-=========================================
-Limpieza de la tabla INDI (indicaciones terapéuticas).
+========================================
+Limpieza específica de la tabla INDI (indicaciones).
 
 Lee de  : data/raw/faers/INDI25Q4.txt
 Escribe : data/clean_data/INDI_clean.parquet
@@ -32,31 +32,27 @@ def limpiar_indi(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     log = {"filas_iniciales": len(df)}
     antes = len(df)
 
-    # ── 1. Sin primaryid ────────────────────────────────────────────────────
+    # -- 1. Sin primaryid ----------------------------------------------------
     mask = df["primaryid"].notna()
     df = df[mask].copy()
     log["sin_primaryid"] = int((~mask).sum())
 
-    # ── 2. Normalizar indicación ────────────────────────────────────────────
-    col = RULES_INDI["columna_texto"]
-    df[col] = df[col].fillna(RULES_INDI["default_valor"])
-    df[col] = df[col].str.upper().str.strip()
+    # -- 2. Normalizar indicación --------------------------------------------
+    col_texto = RULES_INDI["columna_texto"]
+    if col_texto in df.columns:
+        df[col_texto] = df[col_texto].fillna(RULES_INDI["default_valor"]).str.upper().str.strip()
+        mask_len = df[col_texto].str.len() >= RULES_INDI["pt_min_len"]
+        df = df[mask_len]
+        log["indicaciones_normalizadas"] = len(df)
 
-    # Eliminar registros con indicación de longitud muy corta (ruido)
-    mask_corta = df[col].str.len() >= RULES_INDI["pt_min_len"]
-    df = df[mask_corta]
-    log["indicacion_muy_corta"] = int((~mask_corta).sum())
-    print(f"  Indicaciones muy cortas eliminadas: {log['indicacion_muy_corta']:,}")
-
-    # ── 3. Eliminar columnas con >80% nulos ─────────────────────────────────
-    umbral = 0.80
-    pct = df.isnull().mean()
-    cols_eliminar = pct[pct > umbral].index.tolist()
+    # -- 3. Eliminar columnas con >80% nulos ---------------------------------
+    umbral = 0.8
+    cols_eliminar = df.columns[df.isnull().mean() > umbral].tolist()
     df = df.drop(columns=cols_eliminar)
     log["columnas_eliminadas"] = cols_eliminar
     print(f"  Columnas eliminadas (>80% nulos): {cols_eliminar}")
 
-    # ── 4. Duplicados ───────────────────────────────────────────────────────
+    # -- 4. Duplicados -------------------------------------------------------
     dups = df.duplicated().sum()
     df = df.drop_duplicates()
     log["duplicados_eliminados"] = int(dups)
@@ -70,7 +66,7 @@ def limpiar_indi(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
 def guardar_log(log: dict):
     path = LOG_DIR / f"s04_indi_{datetime.now():%Y-%m-%d}.txt"
     with open(path, "w", encoding="utf-8") as f:
-        f.write(f"Limpieza INDI — {datetime.now():%Y-%m-%d %H:%M:%S}\n")
+        f.write(f"Limpieza INDI - {datetime.now():%Y-%m-%d %H:%M:%S}\n")
         f.write("=" * 60 + "\n\n")
         for k, v in log.items():
             f.write(f"  {k:<40} {v}\n")
@@ -79,7 +75,7 @@ def guardar_log(log: dict):
 
 def main():
     print("\n  [s04] Limpieza INDI")
-    print("  " + "─" * 56)
+    print("  " + "-" * 56)
 
     df = cargar_indi()
     print(f"  Cargado: {len(df):,} filas × {df.shape[1]} columnas")
@@ -91,8 +87,8 @@ def main():
     print(f"  [OK] Guardado: {out} ({len(df_clean):,} filas)")
 
     guardar_log(log)
-    print(f"\n  Resumen: {log['filas_iniciales']:,} → {log['filas_finales']:,} "
-          f"(−{log['filas_eliminadas']:,} filas, −{log['filas_eliminadas']/log['filas_iniciales']*100:.1f}%)\n")
+    print(f"\n  Resumen: {log['filas_iniciales']:,} -> {log['filas_finales']:,} "
+          f"(-{log['filas_eliminadas']:,} filas, -{log['filas_eliminadas']/log['filas_iniciales']*100:.1f}%)\n")
 
 
 if __name__ == "__main__":

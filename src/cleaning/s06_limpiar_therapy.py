@@ -1,7 +1,7 @@
 """
 src/cleaning/s06_limpiar_therapy.py
-=====================================
-Limpieza de la tabla THER (terapia).
+====================================
+Limpieza específica de la tabla THER (terapias).
 
 Lee de  : data/raw/faers/THER25Q4.txt
 Escribe : data/clean_data/THER_clean.parquet
@@ -32,29 +32,28 @@ def limpiar_ther(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     log = {"filas_iniciales": len(df)}
     antes = len(df)
 
-    # ── 1. Sin primaryid ────────────────────────────────────────────────────
+    # -- 1. Sin primaryid ----------------------------------------------------
     mask = df["primaryid"].notna()
     df = df[mask].copy()
     log["sin_primaryid"] = int((~mask).sum())
 
-    # ── 2. drug_seq como entero positivo ────────────────────────────────────
-    df["drug_seq"] = pd.to_numeric(df["drug_seq"], errors="coerce")
-    df.loc[df["drug_seq"] <= 0, "drug_seq"] = pd.NA
-    df["drug_seq"] = df["drug_seq"].fillna(0).astype(int)
-    log["drug_seq_rellenados"] = int((df["drug_seq"] == 0).sum())
+    # -- 2. drug_seq como entero positivo ------------------------------------
+    if "drug_seq" in df.columns:
+        df["drug_seq"] = pd.to_numeric(df["drug_seq"], errors="coerce")
+        df = df[df["drug_seq"] > 0]
+        log["drug_seq_invalidos"] = antes - len(df)
 
-    # ── 3. Duplicados completos ─────────────────────────────────────────────
+    # -- 3. Duplicados completos ---------------------------------------------
     dups = df.duplicated().sum()
     df = df.drop_duplicates()
     log["duplicados_eliminados"] = int(dups)
     print(f"  Duplicados eliminados: {dups:,}")
 
-    # ── 4. Columnas con todos los valores vacíos ────────────────────────────
-    cols_vacias = df.columns[df.notna().sum() == 0].tolist()
-    if cols_vacias:
-        df = df.drop(columns=cols_vacias)
-        log["columnas_eliminadas_vacias"] = cols_vacias
-        print(f"  Columnas vacías eliminadas: {cols_vacias}")
+    # -- 4. Columnas con todos los valores vacíos ----------------------------
+    cols_eliminar = df.columns[df.isnull().all()].tolist()
+    df = df.drop(columns=cols_eliminar)
+    log["columnas_vacias_eliminadas"] = cols_eliminar
+    print(f"  Columnas vacías eliminadas: {cols_eliminar}")
 
     log["filas_finales"]    = len(df)
     log["filas_eliminadas"] = antes - len(df)
@@ -64,7 +63,7 @@ def limpiar_ther(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
 def guardar_log(log: dict):
     path = LOG_DIR / f"s06_ther_{datetime.now():%Y-%m-%d}.txt"
     with open(path, "w", encoding="utf-8") as f:
-        f.write(f"Limpieza THER — {datetime.now():%Y-%m-%d %H:%M:%S}\n")
+        f.write(f"Limpieza THER - {datetime.now():%Y-%m-%d %H:%M:%S}\n")
         f.write("=" * 60 + "\n\n")
         for k, v in log.items():
             f.write(f"  {k:<40} {v}\n")
@@ -73,7 +72,7 @@ def guardar_log(log: dict):
 
 def main():
     print("\n  [s06] Limpieza THER")
-    print("  " + "─" * 56)
+    print("  " + "-" * 56)
 
     df = cargar_ther()
     print(f"  Cargado: {len(df):,} filas × {df.shape[1]} columnas")
@@ -85,8 +84,8 @@ def main():
     print(f"  [OK] Guardado: {out} ({len(df_clean):,} filas)")
 
     guardar_log(log)
-    print(f"\n  Resumen: {log['filas_iniciales']:,} → {log['filas_finales']:,} "
-          f"(−{log['filas_eliminadas']:,} filas, −{log['filas_eliminadas']/log['filas_iniciales']*100:.1f}%)\n")
+    print(f"\n  Resumen: {log['filas_iniciales']:,} -> {log['filas_finales']:,} "
+          f"(-{log['filas_eliminadas']:,} filas, -{log['filas_eliminadas']/log['filas_iniciales']*100:.1f}%)\n")
 
 
 if __name__ == "__main__":

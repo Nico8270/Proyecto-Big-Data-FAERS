@@ -144,6 +144,12 @@ def run() -> tuple[dict, list]:
         if result.stdout:
             print(result.stdout.rstrip())
         if result.returncode != 0:
+            if result.stderr:
+                print("\n" + "!" * 80)
+                print(f"  [ERROR EN SCRIPT] {script} falló con el siguiente error detallado:")
+                print("!" * 80)
+                print(result.stderr.rstrip())
+                print("!" * 80 + "\n")
             err = result.stderr.strip()[:300] if result.stderr else "sin detalle"
             errores.append(f"código {result.returncode} — {err}")
 

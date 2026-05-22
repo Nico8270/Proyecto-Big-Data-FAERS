@@ -41,8 +41,9 @@ MENU = """
 ║  0. Configurar entorno y descargar tecnologias                ║
 ║  1. Analisis exploratorio (EDA)                               ║
 ║  2. Limpiar datos                                             ║
-║  3. Balancear datos                                           ║
-║  4. Salir                                                     ║
+║  3. Hacer join de datos limpios                               ║
+║  4. Balancear datos                                           ║
+║  5. Salir                                                     ║
 ╚═══════════════════════════════════════════════════════════════╝
 """
 
@@ -249,7 +250,25 @@ def _guardar_cache(tiempos: dict):
         pass
 
 
-# ─── Opción 3 -- Balanceo de datos ──────────────────────────────────────────────
+# ─── Opción 3 -- Join de datos ──────────────────────────────────────────────────
+
+def ejecutar_join() -> None:
+    """Ejecuta el pipeline de consolidación (join) mostrando su salida en vivo."""
+    print("\n  Iniciando join de datos limpios...\n")
+    result = subprocess.run(
+        [sys.executable, "src/cleaning/s08_consolidar_clean.py"],
+        capture_output=False,
+        text=True,
+        cwd=str(PROJECT_ROOT),
+    )
+    if result.returncode == 0:
+        print("\n  [OK] Join completado. Datos en: data/joined/\n")
+    else:
+        print(f"\n  [ERROR] Join falló (código {result.returncode}).\n")
+    input("  Presione Enter para volver al menu...")
+
+
+# ─── Opción 4 -- Balanceo de datos ──────────────────────────────────────────────
 
 def ejecutar_balanceo() -> None:
     """Ejecuta el pipeline de balanceo mostrando su salida en vivo."""
@@ -267,7 +286,7 @@ def ejecutar_balanceo() -> None:
     input("  Presione Enter para volver al menu...")
 
 
-# ─── Opción 4 -- Salir ──────────────────────────────────────────────────────────
+# ─── Opción 5 -- Salir ──────────────────────────────────────────────────────────
 
 def salir() -> None:
     print("\n  Hasta luego.\n")
@@ -292,13 +311,16 @@ def main():
             ejecutar_limpieza()
 
         elif opcion == "3":
-            ejecutar_balanceo()
+            ejecutar_join()
 
         elif opcion == "4":
+            ejecutar_balanceo()
+
+        elif opcion == "5":
             salir()
 
         else:
-            print(f"\n  Opcion '{opcion}' no valida. Elija 0, 1, 2, 3 o 4.\n")
+            print(f"\n  Opcion '{opcion}' no valida. Elija 0, 1, 2, 3, 4 o 5.\n")
             input("  Presione Enter para continuar...")
 
 

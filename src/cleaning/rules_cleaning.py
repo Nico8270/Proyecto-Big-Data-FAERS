@@ -11,7 +11,7 @@ from pathlib import Path
 
 # ── Rutas ─────────────────────────────────────────────────────────────────────
 
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 RAW_DATA     = PROJECT_ROOT / "data" / "raw" / "faers"
 CLEAN_DATA   = PROJECT_ROOT / "data" / "clean_data"
 

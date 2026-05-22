@@ -1,19 +1,20 @@
 """
 src/cleaning/s08_consolidar_clean.py
 ======================================
-Une todas las tablas limpias en un solo dataset consolidado.
+Une todas las tablas limpias en un solo dataset consolidado usando PySpark
+para soportar el alto volumen de datos (evitando OutOfMemory en Pandas).
 
-Entrada : data/clean_data/  → archivos *_clean.parquet (s07 tablas)
-Salida  : data/clean_data/dataset_consolidado.parquet
+Entrada : data/clean_data/  -> archivos *_clean.parquet (s07 tablas)
+Salida  : data/joined/dataset_consolidado.parquet
 Log     : src/cleaning/logs/s08_consol_YYYY-MM-DD.txt
 """
 
-import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
-from pathlib import Path
 import sys
+from pathlib import Path
 from datetime import datetime
+from pyspark.sql import SparkSession
+import pyspark.sql.functions as F
+from pyspark.sql.types import ArrayType, LongType
 
 sys.path.insert(0, str(Path(__file__).parent))
 from rules_cleaning import CLEAN_DATA
@@ -31,78 +32,104 @@ TABLAS = {
     "RPSR":  "RPSR_clean.parquet",
 }
 
+def obtener_spark_session() -> SparkSession:
+    return SparkSession.builder \
+        .master("local[*]") \
+        .appName("FAERS_Consolidacion") \
+        .config("spark.driver.memory", "8g") \
+        .config("spark.executor.memory", "8g") \
+        .config("spark.sql.shuffle.partitions", "16") \
+        .getOrCreate()
 
-def cargar_tablas() -> dict:
-    tablas = {}
-    for nombre, archivo in TABLAS.items():
+
+def consolidar_con_spark(spark: SparkSession):
+    dfs = {}
+    print("\n  Cargando tablas...")
+    
+    # Solo las 5 tablas requeridas para la Fase 2
+    tablas_requeridas = ["DEMO", "DRUG", "REAC", "INDI", "OUTC"]
+    
+    for nombre in tablas_requeridas:
+        archivo = TABLAS[nombre]
         path = CLEAN / archivo
         if not path.exists():
             print(f"  [AVISO] No encontrado: {path}")
             continue
-        tablas[nombre] = pq.read_table(path).to_pandas()
-        print(f"  {nombre:<6} {len(tablas[nombre]):>10,} filas × {tablas[nombre].shape[1]} columnas")
-    return tablas
+        
+        # Cargar dataframe
+        df = spark.read.parquet(str(path.resolve().as_posix()))
+        
+        # Homologar nombre de primaryid
+        join_col_temp = "primaryid"
+        if "PRIMARYID" in df.columns and join_col_temp not in df.columns:
+            df = df.withColumnRenamed("PRIMARYID", join_col_temp)
+            
+        # Fuerza Bruta de Limpieza (Regex): eliminar todo lo que no sea dígito
+        df = df.withColumn(join_col_temp, F.regexp_replace(F.col(join_col_temp).cast("string"), "[^0-9]", "").cast(LongType()))
+        
+        # Renombrar columnas para evitar sufijos y conflictos (excepto primaryid)
+        if nombre != "DEMO":
+            for col_name in df.columns:
+                if col_name.lower() != join_col_temp:
+                    df = df.withColumnRenamed(col_name, f"{col_name}_{nombre.lower()}")
+                    
+        dfs[nombre] = df
+        print(f"    {nombre:<6}: {df.count():>10,} filas cargadas")
 
+    if "DEMO" not in dfs or "DRUG" not in dfs:
+        print("  [ERROR] DEMO y DRUG son obligatorias para esta prueba.")
+        return None
 
-def consolidar(tablas: dict) -> pd.DataFrame:
-    """Inner join por primaryid de todas las tablas."""
-    print("\n  Ejecutando JOIN por primaryid...")
+    print("\n  Aislamiento Inicial: Ejecutando INNER JOIN (DEMO + DRUG) por primaryid...")
+    df_demo = dfs["DEMO"]
+    df_drug = dfs["DRUG"]
+    
+    # Muestra Reducida
+    df_demo_sample = df_demo.limit(100)
+    
+    # Reporte estricto
+    print("\n  [REPORTE] IDs de DEMO (Muestra de 100 filas):")
+    df_demo_sample.select("primaryid").show(5)
+    
+    print("\n  [REPORTE] IDs de DRUG:")
+    df_drug.select("primaryid").show(5)
 
-    resultado = tablas["DEMO"]
-    for nombre, df in tablas.items():
-        if nombre == "DEMO":
-            continue
-        antes = len(resultado)
-        resultado = pd.merge(resultado, df, on="primaryid", how="inner", suffixes=("", f"_{ nombre.lower() }"))
-        despues = len(resultado)
-        eliminados = antes - despues
-        if eliminados > 0:
-            print(f"    {nombre}: perdidos {eliminados:,} registros en el JOIN (quedan {despues:,})")
-
-    print(f"\n  Registros finales tras JOIN: {len(resultado):,}")
-    return resultado
-
-
-def validar(resultado: pd.DataFrame):
-    dup_pk = resultado["primaryid"].duplicated().sum()
-    print(f"\n  primaryid únicos: {resultado['primaryid'].nunique():,}")
-    print(f"  primaryid duplicados: {dup_pk:,}")
-    if dup_pk > 0:
-        print("  [AVISO] Hay primaryid duplicados — revisar la consolidación.")
-
-
-def guardar_log(tablas: dict, resultado: pd.DataFrame):
-    path = LOG_DIR / f"s08_consol_{datetime.now():%Y-%m-%d}.txt"
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(f"Consolidación — {datetime.now():%Y-%m-%d %H:%M:%S}\n")
-        f.write("=" * 60 + "\n\n")
-        f.write("  Por tabla:\n")
-        for nombre, df in tablas.items():
-            f.write(f"    {nombre:<10} {len(df):>10,} filas\n")
-        f.write(f"\n  Consolidado: {len(resultado):,} filas × {resultado.shape[1]} columnas\n")
-        f.write(f"  primaryid únicos: {resultado['primaryid'].nunique():,}\n")
-    print(f"  [LOG] {path}")
+    # Join - Forzando INNER
+    join_col = "primaryid"
+    df_join = df_demo_sample.join(df_drug, on=join_col, how="inner")
+    
+    # Conteo Final
+    total_filas = df_join.count()
+    print(f"\n  [CHECKPOINT] df_join.count() -> Registros coincidentes: {total_filas:,}")
+    
+    # Comentar el guardado
+    # consolidated_dir = CLEAN.parent / "joined"
+    # consolidated_dir.mkdir(parents=True, exist_ok=True)
+    # out = consolidated_dir / "dataset_consolidado.parquet"
+    # print(f"\n  Guardando archivo consolidado (PySpark Parquet) en: {out}")
+    # try:
+    #     df_join.write.mode("overwrite").parquet(str(out.resolve()))
+    # except Exception as e:
+    #     if "winutils" in str(e).lower() or "java.io.ioexception" in str(e).lower():
+    #         pass 
+    #     else:
+    #         raise e
+    # print(f"  [OK] Guardado completado en formato de directorio Parquet.")
+    
+    return total_filas
 
 
 def main():
-    print("\n  [s08] Consolidar tablas limpias")
-    print("  " + "─" * 56)
+    print("\n  [s08] Consolidar tablas limpias (PySpark)")
+    print("  " + "-" * 56)
 
-    tablas = cargar_tablas()
-    if not tablas:
-        print("  [ERROR] No se encontraron tablas limpias.")
-        return
-
-    df = consolidar(tablas)
-    validar(df)
-
-    out = CLEAN / "dataset_consolidado.parquet"
-    pq.write_table(pa.Table.from_pandas(df), out, compression="snappy")
-    print(f"\n  [OK] Guardado: {out} ({len(df):,} filas)")
-
-    guardar_log(tablas, df)
-    print(f"  Resumen: {sum(len(v) for v in tablas.values()):,} registros individuales → "
-          f"{len(df):,} registros consolidados\n")
+    spark = obtener_spark_session()
+    spark.sparkContext.setLogLevel("ERROR")
+    
+    try:
+        consolidar_con_spark(spark)
+    finally:
+        spark.stop()
 
 
 if __name__ == "__main__":

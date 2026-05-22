@@ -1,0 +1,9 @@
+Limpieza THER - 2026-05-21 18:50:28
+============================================================
+
+  filas_iniciales                          454746
+  sin_primaryid                            0
+  duplicados_eliminados                    15676
+  columnas_vacias_eliminadas               []
+  filas_finales                            439070
+  filas_eliminadas                         15676
