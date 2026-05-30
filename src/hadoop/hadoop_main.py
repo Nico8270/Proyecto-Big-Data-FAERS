@@ -117,6 +117,11 @@ def main(sample_size: int | None = None):
         print("\n[FALLO] Abortando el pipeline en la etapa de postprocesamiento.")
         sys.exit(1)
 
+    # 4. Calcular señales de seguridad estadísticas
+    if not run_script("s04_safety_signals.py"):
+        print("\n[FALLO] Abortando el pipeline en la etapa de cálculo de señales.")
+        sys.exit(1)
+
     total_dur = time.time() - t_start
     print("\n" + "=" * 60)
     print(f"  PIPELINE HADOOP MAPREDUCE COMPLETADO CON ÉXITO")
