@@ -1,0 +1,14 @@
+Limpieza DEMO — 2026-05-25 19:54:30
+============================================================
+
+  filas_iniciales                          385288
+  eliminados_sin_primaryid                 0
+  sex_normalizados                         79070
+  edad_fuera_rango                         147862
+  edad_imputada_mediana                    147862
+  edad_final_nulos                         0
+  paises_normalizados                      721
+  columnas_eliminadas                      ['auth_num', 'lit_ref', 'age_grp', 'wt', 'wt_cod', 'to_mfr']
+  duplicados_eliminados                    0
+  filas_finales                            385288
+  filas_eliminadas                         0

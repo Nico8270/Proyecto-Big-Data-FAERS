@@ -1,0 +1,10 @@
+Limpieza INDI - 2026-05-21 18:50:25
+============================================================
+
+  filas_iniciales                          1168789
+  sin_primaryid                            0
+  indicaciones_normalizadas                1168789
+  columnas_eliminadas                      []
+  duplicados_eliminados                    1052
+  filas_finales                            1167737
+  filas_eliminadas                         1052

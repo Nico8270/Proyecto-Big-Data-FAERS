@@ -1,0 +1,15 @@
+# Requerimientos para Hadoop/MapReduce con Python
+# Instalar con: pip install -r requirements_hadoop.txt
+
+# Framework MapReduce para Python
+mrjob>=0.7.4
+
+# Para ejecución en Hadoop Streaming
+# No requiere librerías adicionalas, solo los scripts .py
+
+# Opcional: Para procesamiento más rápido
+# numpy>=1.24.0
+# pandas>=2.0.0
+
+# Para empaquetar dependencias en Hadoop
+# -r requirements.txt  # Incluir en el comando hadoop streaming

@@ -1,0 +1,9 @@
+Limpieza OUTC — 2026-05-25 19:54:54
+============================================================
+
+  filas_iniciales                          289721
+  sin_primaryid                            0
+  outc_cod_normalizados                    0
+  duplicados_eliminados                    71379
+  filas_finales                            289721
+  filas_eliminadas                         0

@@ -1,0 +1,5 @@
+Consolidación PySpark (Fase 2) - 2026-05-21 19:46:05
+============================================================
+
+  Consolidado final: 385,288 filas
+  Columnas (46): ['primaryid', 'caseid', 'caseversion', 'i_f_code', 'event_dt', 'mfr_dt', 'init_fda_dt', 'fda_dt', 'rept_cod', 'mfr_num', 'mfr_sndr', 'age', 'age_cod', 'sex', 'e_sub', 'rept_dt', 'occp_cod', 'reporter_country', 'occr_country', 'caseid_drug', 'drug_seq_drug', 'role_cod_drug', 'drugname_drug', 'prod_ai_drug', 'val_vbm_drug', 'route_drug', 'dose_vbm_drug', 'dechal_drug', 'rechal_drug', 'lot_num_drug', 'nda_num_drug', 'dose_amt_drug', 'dose_unit_drug', 'dose_form_drug', 'dose_freq_drug', '__index_level_0___drug', 'caseid_reac', 'pt_reac', 'drug_rec_act_reac', '__index_level_0___reac', 'caseid_indi', 'indi_drug_seq_indi', 'indi_pt_indi', '__index_level_0___indi', 'caseid_outc', 'outc_cod_outc']

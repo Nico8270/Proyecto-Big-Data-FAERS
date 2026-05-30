@@ -1,0 +1,10 @@
+Limpieza REAC - 2026-05-30 14:12:34
+============================================================
+
+  filas_iniciales                          1349105
+  sin_primaryid                            0
+  reacciones_normalizadas                  1349105
+  drug_rec_act_normalizados                1347381
+  duplicados_eliminados                    17029
+  filas_finales                            1332076
+  filas_eliminadas                         17029
