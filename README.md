@@ -58,7 +58,7 @@ El proyecto cuenta con un orquestador en Windows que ejecuta todo de forma contr
 1.  Abre un terminal en la carpeta raíz del proyecto.
 2.  Ejecuta el archivo por lotes de Windows:
     ```cmd
-    run.bat
+    python main.py
     ```
     *(Este comando iniciará el menú interactivo estableciendo el encoding UTF-8 en consola para mostrar barras de progreso y cajas dinámicas sin problemas de codificación CP1252).*
 
