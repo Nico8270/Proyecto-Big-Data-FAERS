@@ -148,12 +148,12 @@ def imprimir_tecnica_ganadora(seleccion: dict) -> None:
         return
 
     print(f"\n  TECNICA RECOMENDADA")
-    print(f"  {'─' * 56}")
+    print(f"  {'-' * 56}")
     print(f"  -> {seleccion['tecnica']}")
     print(f"     {seleccion['justificacion']}")
     if seleccion.get("alternativas"):
         print(f"\n  Alternativas: {', '.join(TECNICAS[k]['label'] for k in seleccion['alternativas'])}")
-    print(f"  {'─' * 56}")
+    print(f"  {'-' * 56}")
 
 
 # ── Submenu de seleccion ────────────────────────────────────────────────────────
@@ -176,7 +176,7 @@ def submenu_tecnica(seleccion: dict, recomendadas: list) -> list:
         print("  2. Elegir otra tecnia")
         print("  3. Ejecutar todas las recomendadas")
         print("  4. Salir sin ejecutar")
-        print(f"  {'─' * 56}")
+        print(f"  {'-' * 56}")
 
         eleccion = input("\n  Seleccione opcion (1–4): ").strip()
 
@@ -207,7 +207,7 @@ def _submenu_todas(recomendadas: list) -> list:
         print(f"  {num}. {TECNICAS[clave]['label']:<30}{marca}")
 
     print(f"\n  0. Volver")
-    print(f"  {'─' * 56}")
+    print(f"  {'-' * 56}")
 
     while True:
         eleccion = input("\n  Seleccione una tecnica (0 para volver): ").strip()
