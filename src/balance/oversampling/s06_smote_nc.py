@@ -40,14 +40,44 @@ def parse_args() -> argparse.Namespace:
 
 
 def aplicar(df: pd.DataFrame) -> pd.DataFrame:
-    """Aplica SMOTENC: SMOTE con soporte de columnas categoricas."""
-    col_preservar = df.select_dtypes(include=["object", "category"]).columns.tolist()
-    col_preservar = [c for c in col_preservar
-                     if c not in (TARGET_COL, ID_COL)]
-    col_num = [c for c in df.columns
-               if c not in col_preservar + [TARGET_COL, ID_COL]]
+    """
+    Aplica SMOTENC: SMOTE con soporte de columnas categoricas de baja cardinalidad.
+    Excluye columnas de alta cardinalidad para evitar desbordamientos de memoria.
+    """
+    # Columnas no-numericas totales
+    col_no_num_total = df.select_dtypes(include=["object", "category"]).columns.tolist()
+    col_no_num_total = [c for c in col_no_num_total if c not in (TARGET_COL, ID_COL)]
 
-    # Orden de features: primero numericas, luego categoricas
+    # Separar en baja y alta cardinalidad (umbral = 100)
+    col_preservar = []
+    col_alta_card = []
+    for c in col_no_num_total:
+        card = df[c].nunique()
+        if card <= 100:
+            col_preservar.append(c)
+        else:
+            col_alta_card.append((c, card))
+
+    # Explicación en consola súper amigable
+    print(f"  ==============================================================")
+    print(f"  [RAM OPTIMIZATION] Optimizacion Inteligente de RAM para SMOTE-NC")
+    print(f"  ==============================================================")
+    print(f"  Para evitar que tu computadora se quede sin memoria RAM (Out of Memory)")
+    print(f"  e impedir distorsiones estadisticas, hemos analizado la cardinalidad:")
+    print(f"  - Columnas categoricas aptas (<= 100 clases): {len(col_preservar)}")
+    if col_alta_card:
+        print(f"  - Excluidas temporalmente por alta cardinalidad (> 100 clases): {len(col_alta_card)}")
+        for c, card in col_alta_card:
+            print(f"    * {c:<30} | {card:,} clases unicas")
+        print(f"\n  [PROCESO] Estas columnas excluidas se preservaran intactas para los")
+        print(f"  datos originales y se rellenaran con su moda/valor mas comun")
+        print(f"  para las nuevas filas sinteticas creadas por SMOTE-NC.")
+    print(f"  --------------------------------------------------------------\n")
+
+    col_num = [c for c in df.columns
+               if c not in col_no_num_total and c not in (TARGET_COL, ID_COL)]
+
+    # Orden de features: primero numericas, luego categoricas de baja cardinalidad
     columnas_orden = col_num + col_preservar
     X = df[columnas_orden].copy()
     y = df[TARGET_COL].copy()
@@ -72,7 +102,7 @@ def aplicar(df: pd.DataFrame) -> pd.DataFrame:
     y_cl = y
 
     print(f"    Filas validas para SMOTE-NC: {len(X_cl):,} de {len(df):,} (NaNs imputados con mediana)")
-    print(f"    Columnas categoricas: {len(cat_indices)}  "
+    print(f"    Columnas categoricas en el calculo: {len(cat_indices)}  "
           f"({len(cat_indices)/max(len(columnas_orden),1)*100:.0f}%)")
 
     smotenc = SMOTENC(
@@ -83,8 +113,27 @@ def aplicar(df: pd.DataFrame) -> pd.DataFrame:
     )
     X_res, y_res = smotenc.fit_resample(X_cl, y_cl)
 
+    # Reconstruir DataFrame con columnas procesadas
     df_res         = pd.DataFrame(X_res, columns=columnas_orden)
     df_res[TARGET_COL] = y_res.values
+
+    # Reincorporar las columnas de alta cardinalidad
+    if col_alta_card:
+        for c, _ in col_alta_card:
+            valores = np.empty(len(df_res), dtype=object)
+            # Copiar originales
+            valores[:len(y_cl)] = df[c].values
+            # Rellenar sinteticas con la moda
+            moda = df[c].mode()[0] if not df[c].mode().empty else "SINTETICO"
+            valores[len(y_cl):] = f"{moda}"
+            df_res[c] = valores
+
+    # Reincorporar primaryid si existe en el df original
+    if ID_COL in df.columns:
+        valores_id = np.empty(len(df_res), dtype=object)
+        valores_id[:len(y_cl)] = df[ID_COL].values
+        valores_id[len(y_cl):] = "SINTETICO"
+        df_res[ID_COL] = valores_id
 
     es_sintetica = np.zeros(len(X_res), dtype=bool)
     es_sintetica[len(y_cl):] = True
@@ -105,7 +154,14 @@ def main():
     conteos_antes = df[TARGET_COL].value_counts().to_dict()
     print(f"  Registros originales: {len(df):,}")
 
-    df_bal = aplicar(df)
+    try:
+        df_bal = aplicar(df)
+    except MemoryError:
+        print(f"\n  [ERROR DE MEMORIA] No se pudo ejecutar SMOTE-NC.")
+        print(f"  Detalle: La alta cardinalidad de las columnas categoricas")
+        print(f"  y el tamaño del dataset causaron que Numpy se quedara sin memoria RAM.")
+        print(f"  Se recomienda usar SMOTE estandar o SMOTE+ENN en su lugar.")
+        sys.exit(1)
 
     conteos_despues = df_bal[TARGET_COL].value_counts().to_dict()
 
