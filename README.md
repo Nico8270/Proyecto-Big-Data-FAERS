@@ -20,15 +20,13 @@ La plataforma unifica tecnologías clave de la ingeniería de datos moderna y la
 
 ---
 
-## 2. Manual de Uso (Desarrollado para Windows)
+## 2. Manual de Uso
+Se detallara paso a paso la ejecución del programa.
 
-El proyecto ha sido optimizado específicamente para ejecutarse de forma portátil y nativa en entornos **Windows 10/11** sin requerir complejas instalaciones globales de Hadoop, Spark o Java en el sistema operativo.
-
-### Paso 1: Requisitos Previos en Windows
-1.  **Python 3.10 o superior** instalado en Windows.
+### Paso 1: Requisitos Previos
+1.  **Python 3.10 o superior** instalado.
     > [!IMPORTANT]
-    > Al instalar Python en Windows, asegúrate de marcar la casilla **"Add Python to PATH"** en el instalador.
-2.  Un terminal de Windows (PowerShell, CMD o Windows Terminal).
+    > Al instalar Python, asegúrate de marcar la casilla **"Add Python to PATH"** en el instalador.
 
 ---
 
@@ -68,7 +66,7 @@ Al iniciar `run.bat`, verás la interfaz de control principal con 9 opciones. Si
 #### 🔹 [0] Configurar entorno y descargar tecnologías (¡Ejecutar Primero!)
 Instala automáticamente todas las librerías necesarias especificadas en `requirements.txt` a través de `pip`.
 > [!TIP]
-> **Hadoop Local Portable en Windows:** Esta opción detectará si tienes Java instalado. Si no lo tienes, **descargará de forma 100% automatizada e instalará un JDK 17 portable de Eclipse Adoptium** en la carpeta `vendor/jdk/`. El software configura las variables de entorno `JAVA_HOME` y `PATH` en memoria, permitiendo correr MapReduce y Hadoop localmente en Windows sin configurar nada de forma manual en tu PC.
+> **Hadoop Local:** Esta opción detectará si tienes Java instalado. Si no lo tienes, **descargará de forma 100% automatizada e instalará un JDK 17 portable de Eclipse Adoptium** en la carpeta `vendor/jdk/`. El software configura las variables de entorno `JAVA_HOME` y `PATH` en memoria, permitiendo correr MapReduce y Hadoop localmente sin configurar nada de forma manual en tu PC.
 
 #### 🔹 [1] Analisis exploratorio (EDA)
 Ejecuta secuencialmente los 9 scripts de análisis exploratorio (`s01` a `s09`). Genera gráficos interactivos en PDF/PNG y reportes analíticos consolidados dentro de la carpeta `outputs/eda_results/`.
