@@ -20,9 +20,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from balance.config_balance import (
     BALANCED_DIR, BAL_REPORTS, TARGET_COL,
     ARCHIVO_SALIDA, ARCHIVO_METRICAS,
-    RATIO_SIN_ACCION, TECNICAS,
 )
-from balance.rules_balance import ratio_aceptable
+from balance.rules_balance import RATIO_SIN_ACCION, TECNICAS, ratio_ok as ratio_aceptable
 
 
 def recolectar_datasets() -> dict:
@@ -71,11 +70,11 @@ def imprimir_comparativo(metricas_lista: list):
     an  = [30,              14,               12,         12,           12,          6]
 
     print("\n  COMPARATIVO DE TECNICAS DE BALANCEO")
-    print(f"  {'─' * 88}")
+    print(f"  {'-' * 88}")
 
     header = "  " + "  ".join(f"{c:<{a}}" for c, a in zip(col, an))
     print(header)
-    print("  " + "  ".join("─" * (a - 2) for a in an))
+    print("  " + "  ".join("-" * (a - 2) for a in an))
 
     for m in metricas_lista:
         fila = [
@@ -89,13 +88,13 @@ def imprimir_comparativo(metricas_lista: list):
         linea = "  " + "  ".join(f"{v:<{a}}" for v, a in zip(fila, an))
         print(linea)
 
-    print(f"  {'─' * 88}")
+    print(f"  {'-' * 88}")
 
 
 def imprimir_distribucion_por_clase(datasets: dict, df_orig: pd.DataFrame):
     """Tabla de distribucion antes/despues por clase y tecnica."""
     print("\n  DISTRIBUCION POR CLASE (antes / despues)")
-    print(f"  {'─' * 88}")
+    print(f"  {'-' * 88}")
 
     header = f"  {'Clase':<8}" + "".join(
         f"  {TECNICAS[k]['label']:<22}" for k in datasets
@@ -115,15 +114,16 @@ def imprimir_distribucion_por_clase(datasets: dict, df_orig: pd.DataFrame):
         )
         print(linea)
 
-    print(f"  {'─' * 88}")
+    print(f"  {'-' * 88}")
 
 
 def guardar_csv(metricas_lista: list):
     """Guarda el comparativo como CSV."""
     df_out = pd.DataFrame(metricas_lista)
-    ARCHIVO_METRICAS.parent.mkdir(parents=True, exist_ok=True)
-    df_out.to_csv(ARCHIVO_METRICAS, index=False, encoding="utf-8")
-    print(f"\n  [OK] Comparativo guardado: {ARCHIVO_METRICAS}")
+    ruta_csv = BAL_REPORTS / ARCHIVO_METRICAS
+    ruta_csv.parent.mkdir(parents=True, exist_ok=True)
+    df_out.to_csv(ruta_csv, index=False, encoding="utf-8")
+    print(f"\n  [OK] Comparativo guardado: {ruta_csv}")
 
 
 def main():
