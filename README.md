@@ -53,10 +53,7 @@ Los datos de origen provienen directamente del sistema oficial de la FDA de Esta
 ---
 
 ### Paso 3: Ejecución de la Plataforma
-El proyecto cuenta con un orquestador en Windows que ejecuta todo de forma controlada y automatizada.
-
-1.  Abre un terminal en la carpeta raíz del proyecto.
-2.  Ejecuta el archivo por lotes de Windows:
+Ejecutar main.py para acceder a la consola.
     ```cmd
     python main.py
     ```
