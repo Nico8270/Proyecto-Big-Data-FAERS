@@ -59,11 +59,19 @@ def aplicar(df: pd.DataFrame) -> pd.DataFrame:
     # Indices de las columnas categoricas en la matriz ordenada
     cat_indices = [columnas_orden.index(c) for c in col_preservar]
 
-    mask = X[col_num].notna().all(axis=1)
-    X_cl = X[mask]
-    y_cl = y[mask]
+    # Imputamos los valores nulos (NaN) en columnas numéricas usando la mediana
+    # para evitar que se descarten casi todos los datos
+    for col in col_num:
+        if X[col].isna().any():
+            mediana = X[col].median()
+            if pd.isna(mediana):
+                mediana = 0.0
+            X[col] = X[col].fillna(mediana)
 
-    print(f"    Filas validas para SMOTE-NC: {len(X_cl):,} de {len(df):,}")
+    X_cl = X
+    y_cl = y
+
+    print(f"    Filas validas para SMOTE-NC: {len(X_cl):,} de {len(df):,} (NaNs imputados con mediana)")
     print(f"    Columnas categoricas: {len(cat_indices)}  "
           f"({len(cat_indices)/max(len(columnas_orden),1)*100:.0f}%)")
 
@@ -78,10 +86,8 @@ def aplicar(df: pd.DataFrame) -> pd.DataFrame:
     df_res         = pd.DataFrame(X_res, columns=columnas_orden)
     df_res[TARGET_COL] = y_res.values
 
-    indices_res = smotenc.sample_indices_
     es_sintetica = np.zeros(len(X_res), dtype=bool)
-    es_sintetica[indices_res] = True
-    es_sintetica[:len(y_cl)] = False
+    es_sintetica[len(y_cl):] = True
     df_res["es_sintetico_smotenc"] = es_sintetica
 
     return df_res
@@ -92,7 +98,7 @@ def main():
     t0   = time.time()
 
     print(f"\n  [s06] SMOTE-NC Oversampling")
-    print(f"  {'─' * 52}")
+    print(f"  {'-' * 52}")
     print(f"  Entrada : {args.input}")
 
     df    = pd.read_parquet(args.input)

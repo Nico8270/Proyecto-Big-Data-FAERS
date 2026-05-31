@@ -50,11 +50,19 @@ def aplicar(df: pd.DataFrame) -> pd.DataFrame:
     X = df[col_num].copy()
     y = df[TARGET_COL].copy()
 
-    mask = X.notna().all(axis=1)
-    X_cl = X[mask]
-    y_cl = y[mask]
+    # Imputamos los valores nulos (NaN) en columnas numéricas usando la mediana
+    # para evitar que se descarten casi todos los datos
+    for col in X.columns:
+        if X[col].isna().any():
+            mediana = X[col].median()
+            if pd.isna(mediana):
+                mediana = 0.0
+            X[col] = X[col].fillna(mediana)
 
-    print(f"    Filas validas para Borderline-SMOTE: {len(X_cl):,} de {len(df):,}")
+    X_cl = X
+    y_cl = y
+
+    print(f"    Filas validas para Borderline-SMOTE: {len(X_cl):,} de {len(df):,} (NaNs imputados con mediana)")
 
     bl_smote = BorderlineSMOTE(
         k_neighbors   = BORDERLINE_K_NEIGH,
@@ -67,10 +75,8 @@ def aplicar(df: pd.DataFrame) -> pd.DataFrame:
     df_res         = pd.DataFrame(X_res, columns=col_num)
     df_res[TARGET_COL] = y_res.values
 
-    indices_res = bl_smote.sample_indices_
     es_sintetica = np.zeros(len(X_res), dtype=bool)
-    es_sintetica[indices_res] = True
-    es_sintetica[:len(y_cl)] = False
+    es_sintetica[len(y_cl):] = True
     df_res["es_sintetico_borderline"] = es_sintetica
 
     return df_res
@@ -81,7 +87,7 @@ def main():
     t0   = time.time()
 
     print(f"\n  [s05] Borderline-SMOTE Oversampling")
-    print(f"  {'─' * 52}")
+    print(f"  {'-' * 52}")
     print(f"  Entrada : {args.input}")
 
     df    = pd.read_parquet(args.input)

@@ -58,12 +58,19 @@ def aplicar(df: pd.DataFrame) -> pd.DataFrame:
     X_num = df[columnas_numericas].copy()
     y     = df[TARGET_COL].copy()
 
-    # Eliminar filas con NaN en las columnas numericas
-    mask_valido  = X_num.notna().all(axis=1)
-    X_num_clean  = X_num[mask_valido]
-    y_clean      = y[mask_valido]
+    # Imputamos los valores nulos (NaN) en columnas numéricas usando la mediana
+    # para evitar que se descarten casi todos los datos
+    for col in X_num.columns:
+        if X_num[col].isna().any():
+            mediana = X_num[col].median()
+            if pd.isna(mediana):
+                mediana = 0.0
+            X_num[col] = X_num[col].fillna(mediana)
 
-    print(f"    Filas validas para SMOTE: {len(X_num_clean):,} de {len(df):,}")
+    X_num_clean  = X_num
+    y_clean      = y
+
+    print(f"    Filas validas para SMOTE: {len(X_num_clean):,} de {len(df):,} (NaNs imputados con mediana)")
 
     smote = SMOTE(
         sampling_strategy=SMOTE_SAMPLING,
@@ -77,10 +84,8 @@ def aplicar(df: pd.DataFrame) -> pd.DataFrame:
     df_res[TARGET_COL] = y_res.values
 
     # Muestras sinteticas generadas solo para las clases minoritarias
-    indices_res = smote.sample_indices_
     es_sintetica = np.zeros(len(X_res), dtype=bool)
-    es_sintetica[indices_res] = True
-    es_sintetica[:len(y_clean)] = False          # las originales no son sinteticas
+    es_sintetica[len(y_clean):] = True          # las generadas despues de la longitud de original son sinteticas
     df_res["es_sintetico_smote"] = es_sintetica
 
     return df_res
