@@ -129,7 +129,7 @@ def imprimir(tam: dict, desb: dict, feat: dict, plan_info: dict | None) -> None:
         if txt:
             print(f"  {txt}")
         else:
-            print(f"  {'─' * ancho}")
+            print(f"  {'-' * ancho}")
 
     print(f"\n  DIAGNOSTICO DE DATOS")
     linea()
