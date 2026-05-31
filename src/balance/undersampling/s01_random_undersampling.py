@@ -68,7 +68,7 @@ def main():
     t0     = time.time()
 
     print(f"\n  [s01] Random Undersampling")
-    print(f"  {'─' * 52}")
+    print(f"  {'-' * 52}")
     print(f"  Entrada : {args.input}")
 
     df = pd.read_parquet(args.input)

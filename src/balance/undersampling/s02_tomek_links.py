@@ -40,17 +40,31 @@ def aplicar(df: pd.DataFrame) -> pd.DataFrame:
     Aplica Tomek Links: elimina pares mayoria-minoria que son vecinos
     mas cercanos, reduciendo el solapamiento en la frontera.
     """
-    X = df.drop(columns=[TARGET_COL, "primaryid"], errors="ignore")
-    y = df[TARGET_COL]
+    # Columnas no-numericas
+    columnas_no_numericas = df.select_dtypes(include=["object", "category"]).columns.tolist()
+    columnas_id = [c for c in [TARGET_COL, "primaryid"] if c in df.columns]
+    columnas_preservar = [c for c in columnas_no_numericas if c not in columnas_id]
+    columnas_numericas = [c for c in df.columns if c not in columnas_preservar and c != "primaryid" and c != TARGET_COL]
 
-    # TomekLinks solo elimina de la clase mayoritaria
-    tomek = TomekLinks(sampling_strategy="auto", random_state=RANDOM_STATE)
-    X_res, y_res = tomek.fit_resample(X, y)
+    X_num = df[columnas_numericas].copy()
+    y = df[TARGET_COL].copy()
 
-    df_res = X_res.copy()
-    df_res[TARGET_COL] = y_res.values
-    df_res = df_res.reset_index(drop=True)
+    # Imputar NaNs en columnas numericas usando la mediana
+    for col in X_num.columns:
+        if X_num[col].isna().any():
+            mediana = X_num[col].median()
+            if pd.isna(mediana):
+                mediana = 0.0
+            X_num[col] = X_num[col].fillna(mediana)
 
+    tomek = TomekLinks(sampling_strategy="auto")
+    tomek.fit_resample(X_num, y)
+
+    # Obtener los indices que se deben conservar
+    keep_indices = tomek.sample_indices_
+
+    # Retornar el dataset original filtrado con los indices conservados
+    df_res = df.iloc[keep_indices].reset_index(drop=True)
     return df_res
 
 
@@ -59,7 +73,7 @@ def main():
     t0    = time.time()
 
     print(f"\n  [s02] Tomek Links Undersampling")
-    print(f"  {'─' * 52}")
+    print(f"  {'-' * 52}")
     print(f"  Entrada : {args.input}")
 
     df   = pd.read_parquet(args.input)
