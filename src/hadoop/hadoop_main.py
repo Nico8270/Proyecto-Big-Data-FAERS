@@ -3,6 +3,9 @@ src/hadoop/hadoop_main.py
 ===========================
 Orquestador del pipeline de Hadoop MapReduce.
 
+# Pipeline: local batch processing, architected for horizontal scalability.
+# To deploy on EMR: change runner to 'emr' in mrjob.conf and set up AWS credentials.
+
 Secuencia:
 1. Prepara las entradas convirtiendo los archivos parquet a JSON Lines tagged
    (ejecuta src/hadoop/s01_prepare_inputs.py).
@@ -53,7 +56,7 @@ def run_script(script_name: str) -> bool:
 def main(sample_size: int | None = None):
     modo = f"PRUEBA ({sample_size:,} filas/tabla)" if sample_size else "COMPLETO"
     print("=" * 60)
-    print(f"  ORQUESTADOR DE JOIN DISTRIBUIDO HADOOP MAPREDUCE")
+    print(f"  ORQUESTADOR DE JOIN HADOOP MAPREDUCE")
     print(f"  Modo: {modo}")
     print("=" * 60)
 
