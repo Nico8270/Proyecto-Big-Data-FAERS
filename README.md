@@ -12,7 +12,7 @@ La plataforma unifica tecnologías clave de la ingeniería de datos moderna y la
 
 *   **Ingesta y Análisis Exploratorio (EDA):** Scripts optimizados en español con barras de progreso detalladas en consola que analizan la demografía de los pacientes, medicamentos más consumidos, reacciones adversas y tendencias temporales, generando reportes estadísticos y gráficos de alta calidad.
 *   **Limpieza y Consolidación de Datos:** Procesamiento modular de las distintas tablas relacionales de FAERS (Demografía, Drogas, Reacciones, Indicaciones, Terapias, Outcomes, etc.) aplicando reglas estrictas de imputación y normalización.
-*   **Big Data con MapReduce (Hadoop):** Un sistema que ejecuta un Join distribuido localmente a través de la librería `mrjob` y un JDK portable de Java (autodescargable), procesando y cruzando los conjuntos de datos masivos para calcular señales de alerta de seguridad en fármacos.
+*   **Big Data con MapReduce (Hadoop):** Un sistema que ejecuta un Join masivo localmente a través de la librería `mrjob` y un JDK portable de Java (autodescargable), procesando y cruzando los conjuntos de datos masivos para calcular señales de alerta de seguridad en fármacos.
 *   **Balanceo de Clases:** Módulos avanzados para mitigar el desbalance severo en datos clínicos mediante técnicas de submuestreo y sobremuestreo (SMOTE, etc.).
 *   **Machine Learning a Gran Escala:** Entrenamiento de clasificadores basados en ensamblados de árboles de decisión (`RandomForest`) para predecir la severidad y el desenlace (Outcome) de una reacción adversa según el perfil clínico del paciente.
 *   **Streaming en Vivo (Kafka):** Un panel de streaming en vivo interactivo en consola que simula la llegada en tiempo real de nuevos reportes de pacientes y procesa de forma concurrente telemetría clínica.
@@ -75,7 +75,7 @@ Ejecuta secuencialmente los 9 scripts de análisis exploratorio (`s01` a `s09`).
 Procesa y remueve duplicados, imputa campos vacíos y limpia anomalías en las tablas crudas de la FDA, depositando los archivos optimizados listos para Big Data en `data/clean_data/`.
 
 #### 🔹 [3] Join con Hadoop y MapReduce
-Ejecuta la unión distribuida en tu máquina local. Utiliza el framework de MapReduce a través de `mrjob` y el JDK portable para procesar de forma masiva millones de registros y extraer las señales de seguridad de fármacos más críticas en `outputs/mapreduce_results/top_safety_signals.csv`.
+Ejecuta la unión masiva en tu máquina local. Utiliza el framework de MapReduce a través de `mrjob` y el JDK portable para procesar de forma masiva millones de registros y extraer las señales de seguridad de fármacos más críticas en `outputs/mapreduce_results/top_safety_signals.csv`.
 
 #### 🔹 [4] Balancear datos
 Genera conjuntos de entrenamiento equilibrados en `data/balanced_data/` para mitigar el sesgo hacia desenlaces leves o raros, lo cual es fundamental para obtener una buena precisión en los modelos de Machine Learning.
