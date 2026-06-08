@@ -4,7 +4,7 @@ src/hadoop/training/mr_model_training.py
 JOB DE MAPREDUCE: MRModelTraining
 
 Este script implementa el Job de MapReduce utilizando la librería mrjob.
-Realiza un escaneo distribuido masivo de las variables de interés (fármacos, reacciones y combinaciones).
+Realiza un escaneo escalable masivo de las variables de interés (fármacos, reacciones y combinaciones).
 
 Mapper:
   - Lee el archivo JSONL de features.

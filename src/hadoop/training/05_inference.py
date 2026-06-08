@@ -33,10 +33,22 @@ def main():
     drug_enc_path = ASSETS_DIR / "drug_encoder.joblib"
     pt_enc_path = ASSETS_DIR / "pt_encoder.joblib"
 
+    leaking_pt_path = ASSETS_DIR / "leaking_pt_terms.json"
+
     if not model_path.exists() or not drug_enc_path.exists() or not pt_enc_path.exists():
         print(f"\n[ERROR] Componentes del modelo no encontrados en: {ASSETS_DIR}")
         print("  Asegúrese de haber ejecutado con éxito las etapas 02 y 03 de entrenamiento.")
         sys.exit(1)
+
+    # Cargar lista de PT terms enmascarados durante entrenamiento
+    # (generada por 02_feature_engineering.py como parte de la corrección de leakage)
+    if leaking_pt_path.exists():
+        with open(leaking_pt_path, "r", encoding="utf-8") as _f:
+            leaking_pt_set = set(json.load(_f))
+        print(f"  [INFO] {len(leaking_pt_set)} PT terms de outcome-proxy cargados para enmascarar.")
+    else:
+        leaking_pt_set = set()
+        print("  [AVISO] leaking_pt_terms.json no encontrado — inferencia sin PT masking.")
 
     if not INPUT_PARQUET.exists():
         print(f"\n[ERROR] Dataset consolidado para inferencia no encontrado: {INPUT_PARQUET}")
@@ -65,19 +77,34 @@ def main():
         df_inf["sex"]      = df_inf["sex"].fillna("U").astype(str).str.upper().str.strip()
         df_inf["age"]      = pd.to_numeric(df_inf["age"], errors="coerce").fillna(45.0)
 
-        # Codificar
+        # Codificar sexo (mapeo fijo — no depende del encoder)
         sex_map = {"M": 1.0, "F": 0.0, "U": 0.5}
         df_inf["sex_encoded"] = df_inf["sex"].map(sex_map).fillna(0.5)
 
+        # Aplicar PT masking ANTES del encoder:
+        # Los PT terms que son outcome-proxies deben recibir el centinela 'OUTCOME_PROXY'
+        # para que el pt_encoder los trate de la misma manera que durante el entrenamiento.
+        # Sin este paso, el encoder devolvería -1 (unknown) en lugar del código correcto
+        # del centinela, causando predicciones inconsistentes.
+        PT_SENTINEL = "OUTCOME_PROXY"
+        if leaking_pt_set:
+            pt_masked = df_inf["pt"].copy()
+            pt_masked[pt_masked.isin(leaking_pt_set)] = PT_SENTINEL
+            df_inf["pt_masked"] = pt_masked
+            n_masked = (pt_masked == PT_SENTINEL).sum()
+            print(f"  [PT masking] {n_masked:,} filas con PT outcome-proxy enmascarados.")
+        else:
+            df_inf["pt_masked"] = df_inf["pt"]
+
         # Aplicar encoders entrenados mapeando valores desconocidos a -1 de forma segura
         df_inf["drug_encoded"] = drug_encoder.transform(df_inf[["drugname"]]).ravel()
-        df_inf["pt_encoded"]   = pt_encoder.transform(df_inf[["pt"]]).ravel()
+        df_inf["pt_encoded"]   = pt_encoder.transform(df_inf[["pt_masked"]]).ravel()
 
         # Separar matriz X de features
         features = ["drug_encoded", "pt_encoded", "sex_encoded", "age"]
         X = df_inf[features].copy()
 
-        # ── Ejecución de la Predicción con el Modelo de IA ──────────────────────
+        # --- Step 1: Ejecución de la Predicción con el Modelo de IA ---
         print("  [Inferencia] Calculando gravedades con el RandomForest de IA...")
         pred_severidades = clf.predict(X)
         df_inf["predicted_severity"] = pred_severidades.astype(int)
@@ -87,7 +114,7 @@ def main():
         # Tomar la probabilidad máxima de la clase predicha como confianza del modelo
         df_inf["confidence_score"] = [float(probs[pred - 1]) for probs, pred in zip(pred_probs, df_inf["predicted_severity"])]
 
-        # ── Filtrado y Creación de Alertas de Alto Riesgo ────────────────────────
+        # --- Step 2: Filtrado y Creación de Alertas de Alto Riesgo ---
         # Alertas críticas: Predicciones de severidad Grave (4) o Muy Grave (5)
         df_alertas = df_inf[df_inf["predicted_severity"].isin([4, 5])].copy()
         

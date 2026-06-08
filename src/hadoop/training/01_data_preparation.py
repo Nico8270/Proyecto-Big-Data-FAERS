@@ -20,6 +20,7 @@ BALANCED_DIR = PROJECT_ROOT / "data" / "balanced_data"
 STAGING_DIR  = PROJECT_ROOT / "data" / "staging" / "training_input"
 
 def main():
+    # --- Step 1: Initialize Data Preparation ---
     print("\n" + "=" * 60)
     print("  ETAPA 01: PREPARACIÓN DE DATOS BALANCEADOS")
     print("=" * 60)
@@ -55,6 +56,7 @@ def main():
             print(f"  [AVISO] No se pudo limpiar {STAGING_DIR}: {e}")
     STAGING_DIR.mkdir(parents=True, exist_ok=True)
 
+    # --- Step 2: Load and Save Data ---
     print(f"  Leyendo dataset de entrenamiento: {input_parquet.relative_to(PROJECT_ROOT)}...")
     try:
         df = pd.read_parquet(input_parquet)

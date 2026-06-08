@@ -3,10 +3,13 @@ src/hadoop/training/training_main.py
 ======================================
 ORQUESTRADOR PRINCIPAL DEL PIPELINE DE ENTRENAMIENTO HADOOP MAPREDUCE
 
+# Pipeline: local batch processing, architected for horizontal scalability.
+# To deploy on EMR: change runner to 'emr' in mrjob.conf and set up AWS credentials.
+
 Ejecuta secuencialmente las 5 etapas del pipeline de entrenamiento Big Data:
 1. Etapa 01: data_preparation.py (Crea JSONL desde Parquet consolidado)
 2. Etapa 02: feature_engineering.py (Genera features optimizados)
-3. Etapa 03: model_training.py (Ejecuta el mrjob MRModelTraining distribuido)
+3. Etapa 03: model_training.py (Ejecuta el mrjob MRModelTraining escalable)
 4. Etapa 04: evaluation.py (Calcula PRR/Chi-cuadrado y detecta senales)
 5. Etapa 05: inference.py (Genera alertas clinicas de alto riesgo)
 
