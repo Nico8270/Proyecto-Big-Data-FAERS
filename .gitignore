@@ -83,3 +83,8 @@ Thumbs.db
 # Documentacion oficial FAERS (descargable con los datos)
 data/raw/faers/*.pdf
 data/raw/faers/ASCII/
+
+# Paper: se publica por separado, fuera del repo de codigo
+paper_faersnuevo.tex
+paper_faersnuevo.pdf
+figures/
