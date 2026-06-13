@@ -1,9 +1,0 @@
-Limpieza RPSR - 2026-05-21 18:50:29
-============================================================
-
-  filas_iniciales                          10694
-  sin_primaryid                            0
-  columnas_eliminadas                      []
-  duplicados_eliminados                    0
-  filas_finales                            10694
-  filas_eliminadas                         0

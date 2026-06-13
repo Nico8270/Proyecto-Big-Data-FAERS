@@ -1,6 +1,0 @@
-Consolidación Hadoop MapReduce — 2026-05-30 14:22:24
-============================================================
-
-  Consolidado final: 203,791 filas × 52 columnas
-  primaryid únicos: 4,137
-  primaryid duplicados: 199,654
