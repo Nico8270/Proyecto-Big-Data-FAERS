@@ -32,7 +32,7 @@ COMPARACIÓN DE MODELOS (nuevo):
 
   Salidas de datos:
     outputs/model_assets/modelo_severidad.joblib     ← mejor modelo (más alto test f1_macro)
-    outputs/balance_reports/model_comparison.json    ← tabla comparativa completa
+    outputs/model_assets/model_comparison.json      ← tabla comparativa completa (artefacto)
 """
 
 import json
@@ -437,8 +437,22 @@ def main():
         X_test  = df_test[FEATURE_COLS].copy()
         y_test  = df_test["severity_level"].astype(int)
 
+        # --- Reescalar etiquetas de [1,2,3,4,5] a [0,1,2,3,4] para XGBoost ---
+        # XGBoost requiere que las clases estén numeradas desde 0
         class_labels = sorted(y_train.unique().tolist())
         n_classes    = len(class_labels)
+        label_shift  = min(class_labels)  # Shift para mapear al rango [0, n_classes-1]
+        
+        # Si las etiquetas no empiezan en 0, hacer el mapeo
+        if label_shift != 0:
+            y_train_shifted = y_train - label_shift
+            y_test_shifted  = y_test - label_shift
+            class_labels_shifted = [c - label_shift for c in class_labels]
+        else:
+            y_train_shifted = y_train
+            y_test_shifted  = y_test
+            class_labels_shifted = class_labels
+            label_shift = 0
 
         print(f"\n  Train : {len(X_train):,} muestras | Test : {len(X_test):,} muestras")
         print(f"  Clases: {class_labels}  ({n_classes} niveles de severidad)")
@@ -458,7 +472,7 @@ def main():
         # El fit final de cada modelo usa este X_train_resampled.
         print("\n  Aplicando SMOTE sobre X_train completo (para entrenamientos finales)...")
         smote_global = SMOTE(random_state=42)
-        X_train_res, y_train_res = smote_global.fit_resample(X_train, y_train)
+        X_train_res, y_train_res = smote_global.fit_resample(X_train, y_train_shifted)
         print(f"    -> {len(X_train):,} originales + {len(X_train_res)-len(X_train):,} "
               f"sintéticas = {len(X_train_res):,} total")
 
@@ -473,7 +487,7 @@ def main():
             # --- Step 6a: Cross-validation (SMOTE DENTRO del pipeline) ---
             print(f"  Ejecutando CV 5-fold (ImbPipeline[SMOTE → {clf.__class__.__name__}])...")
             t0 = time.time()
-            scores = run_cv_for_model(name, clf, X_train, y_train, n_splits=5)
+            scores = run_cv_for_model(name, clf, X_train, y_train_shifted, n_splits=5)
             t_cv = time.time() - t0
             cv_results[name] = scores
 
@@ -494,16 +508,16 @@ def main():
 
             # --- Step 6c: Evaluación en X_test ---
             y_pred    = clf_final.predict(X_test.values)
-            test_f1   = f1_score(y_test, y_pred, average="macro")
-            test_acc  = accuracy_score(y_test, y_pred)
+            test_f1   = f1_score(y_test_shifted, y_pred, average="macro")
+            test_acc  = accuracy_score(y_test_shifted, y_pred)
 
             print(f"\n  [Test] f1_macro  = {test_f1:.4f}")
             print(f"  [Test] accuracy  = {test_acc:.4f}")
             print(f"\n  classification_report (X_test):")
             print(classification_report(
-                y_test, y_pred,
-                labels=class_labels,
-                target_names=[f"Sev {c}" for c in class_labels],
+                y_test_shifted, y_pred,
+                labels=class_labels_shifted,
+                target_names=[f"Sev {label_shift + c}" for c in class_labels_shifted],
                 digits=4,
             ))
 
@@ -524,8 +538,8 @@ def main():
         joblib.dump(fitted_models[best_model_name], model_path, compress=3)
         print(f"  Guardado en: {model_path.relative_to(PROJECT_ROOT)}")
 
-        # --- Step 9: Guardar tabla comparativa JSON ---
-        comparison_json = REPORTS_DIR / "model_comparison.json"
+        # --- Step 9: Guardar tabla comparativa JSON en model_assets ---
+        comparison_json = ASSETS_DIR / "model_comparison.json"
         with open(comparison_json, "w", encoding="utf-8") as f:
             json.dump({
                 "models": comparison_rows,
@@ -546,13 +560,13 @@ def main():
 
         # ── Gráfico 2: Matrices de confusión 2×2 ──────────────────────────────
         plot_confusion_matrices(
-            fitted_models, X_test, y_test, class_labels,
+            fitted_models, X_test, y_test_shifted, class_labels_shifted,
             ASSETS_DIR / "confusion_matrices.png",
         )
 
         # ── Gráfico 3: Curvas ROC ─────────────────────────────────────────────
         plot_roc_curves(
-            fitted_models, X_test, y_test, class_labels,
+            fitted_models, X_test, y_test_shifted, class_labels_shifted,
             ASSETS_DIR / "roc_curves.png",
         )
 

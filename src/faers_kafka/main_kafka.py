@@ -118,10 +118,9 @@ def main():
             print(f"{CYAN}{BOLD}" + "─" * 80 + f"{RESET}")
             print(f"   • Casos Procesados : {stats['total_consumidos']:,}")
             print(f"   • Alertas Emitidas : {RED if stats['total_alertas'] > 0 else GREEN}{stats['total_alertas']:,}{RESET}")
-            print(f"     ├── {RED}Críticas (Muerte / Riesgo Vital) : {stats['alertas_criticas']:,}{RESET}")
-            print(f"     ├── {YELLOW}Altas (Hospitalización / Congénito) : {stats['alertas_altas']:,}{RESET}")
-            print(f"     ├── {BOLD}Conocidas (Modelo MapReduce Activo) : {stats['alertas_conocidas']:,}{RESET}")
-            print(f"     └── {BOLD}Nuevas Asociaciones Críticas       : {stats['alertas_nuevas']:,}{RESET}")
+            print(f"     ├── {RED}Críticas (Severidad=4 / Grave) : {stats['alertas_criticas']:,}{RESET}")
+            print(f"     ├── {YELLOW}Altas (Severidad=5 / Muy Grave) : {stats['alertas_altas']:,}{RESET}")
+            print(f"     └── {BOLD}Total (Predicción ML) : {stats['alertas_conocidas']:,}{RESET}")
             print(f"{CYAN}{BOLD}" + "─" * 80 + f"{RESET}\n")
             
     except KeyboardInterrupt:
@@ -141,10 +140,8 @@ def main():
         print(f"  Duración total  : {duracion_final:.1f} segundos")
         print(f"  Casos leídos    : {stats_final['total_consumidos']:,}")
         print(f"  Alertas totales : {stats_final['total_alertas']:,}")
-        print(f"    - Críticas   : {stats_final['alertas_criticas']:,}")
-        print(f"    - Altas      : {stats_final['alertas_altas']:,}")
-        print(f"    - Conocidas  : {stats_final['alertas_conocidas']:,}")
-        print(f"    - Nuevas     : {stats_final['alertas_nuevas']:,}")
+        print(f"    - Grave       : {stats_final['alertas_criticas']:,}")
+        print(f"    - Muy Grave   : {stats_final['alertas_altas']:,}")
         print(f"{GREEN}{BOLD}" + "=" * 80 + f"{RESET}\n")
         
         sys.exit(0)

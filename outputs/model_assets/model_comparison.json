@@ -1,0 +1,51 @@
+{
+  "models": [
+    {
+      "model": "Baseline (LR)",
+      "cv_mean": 0.29536772059852046,
+      "cv_std": 0.013588273425333825,
+      "test_f1_macro": 0.28415853797913854,
+      "test_accuracy": 0.44148936170212766
+    },
+    {
+      "model": "Random Forest",
+      "cv_mean": 0.5017443500171737,
+      "cv_std": 0.008131410979401028,
+      "test_f1_macro": 0.517319653124049,
+      "test_accuracy": 0.6891622340425532
+    },
+    {
+      "model": "XGBoost",
+      "cv_mean": 0.5032645841080804,
+      "cv_std": 0.010744742136058902,
+      "test_f1_macro": 0.5138526146157105,
+      "test_accuracy": 0.6831781914893617
+    },
+    {
+      "model": "LightGBM",
+      "cv_mean": 0.5050976607635225,
+      "cv_std": 0.012612510844877372,
+      "test_f1_macro": 0.5041608727399655,
+      "test_accuracy": 0.6775265957446809
+    }
+  ],
+  "best_model": "Random Forest",
+  "feature_cols": [
+    "drug_encoded",
+    "pt_encoded",
+    "sex_encoded",
+    "age"
+  ],
+  "n_train": 12030,
+  "n_test": 3008,
+  "class_labels": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "smote_applied": true,
+  "cv_folds": 5,
+  "data_leakage_free": true
+}

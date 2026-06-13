@@ -28,10 +28,31 @@ Se detallara paso a paso la ejecución del programa.
     > [!IMPORTANT]
     > Al instalar Python, asegúrate de marcar la casilla **"Add Python to PATH"** en el instalador.
 
+2.  **Instalar dependencias** (ejecuta una sola vez):
+    ```bash
+    pip install -r requirements.txt
+    ```
+
 ---
 
-### Paso 2: Obtención e Instalación del Dataset (FAERS)
-Los datos de origen provienen directamente del sistema oficial de la FDA de Estados Unidos (**FAERS**). Debido al tamaño de los archivos (cientos de megabytes), el dataset de origen **no** se sube al repositorio de Git y debe ser provisto manualmente:
+### Paso 2 (Opción A): Usar Subconjunto de Ejemplo (Recomendado para Pruebas)
+
+Para ejecutar el pipeline **sin descargar 340 MB del servidor FDA**, usa el subconjunto de ejemplo local:
+
+**Si ya tienes los datos crudos completos:**
+```bash
+python crear_sample.py
+```
+Esto genera un subconjunto coherente de 1,000 primaryid con todas las tablas relacionales en `data/sample/`.
+
+**Si NO tienes los datos completos:**
+El repositorio incluye datos de ejemplo prehechos en `data/sample/`. Puedes saltar directamente al Paso 3.
+
+---
+
+### Paso 2 (Opción B): Descargar Dataset Completo (Para Análisis a Escala)
+
+Para análisis con todos los datos (203,791 casos), descarga manualmente de FDA:
 
 1.  **Descargar los datos:** Visita el portal oficial de descarga de datos de la FDA:
     👉 [FDA FAERS Electronic Submissions and Raw Data](https://www.fda.gov/drugs/questions-and-answers-fdas-adverse-event-reporting-system-faers/fda-adverse-event-reporting-system-faers-latest-quarterly-data-files)

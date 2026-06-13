@@ -149,17 +149,21 @@ def main():
             sex_col = raw_sex.map({"M": 1.0, "F": 0.0, "U": 0.5}).fillna(0.5)
 
         # Detectar si los datos llegaron precodificados (balanceo previo)
-        ya_codificado_drug = "drug_encoded" in df.columns
-        ya_codificado_pt   = "pt_encoded"   in df.columns
+        # Nota: siempre preferimos trabajar con el texto crudo (pt, drugname)
+        # para garantizar codificación consistente y evitar asunciones sobre pt_encoded/drug_encoded
+        ya_codificado_drug = "drug_encoded" in df.columns and "drugname" not in df.columns
+        ya_codificado_pt   = "pt_encoded" in df.columns and "pt" not in df.columns
 
         # Extraer columnas categóricas crudas para encodeado posterior
-        if ya_codificado_drug:
-            drug_col_raw = df["drug_encoded"].fillna(-1).astype(float)
-        else:
+        # Siempre preferir el texto crudo si está disponible
+        if "drugname" in df.columns:
             drug_col_raw = (
                 df["drugname"].fillna("UNKNOWN").astype(str).str.upper().str.strip()
-                if "drugname" in df.columns else pd.Series(["UNKNOWN"] * len(df))
             )
+        elif ya_codificado_drug:
+            drug_col_raw = df["drug_encoded"].fillna(-1).astype(float)
+        else:
+            drug_col_raw = pd.Series(["UNKNOWN"] * len(df))
 
         # Para pt: siempre extraer el texto crudo para poder calcular entropía
         # (incluso si pt_encoded ya existe, necesitamos el string para auditoría)
@@ -238,7 +242,10 @@ def main():
         # --- Step 4: Codificar drug y pt — fit SOLO sobre X_train ---
         print(f"\n  [PASO 3] Codificando features — fit SOLO en X_train...")
 
-        if not ya_codificado_drug:
+        # DRUG ENCODING
+        # Si tenemos texto crudo (drugname), crear encoder
+        # Si no, intentar usar valores precodificados
+        if "drugname" in df.columns:
             drug_train_arr = np.array(X_train["drug_raw"].tolist(), dtype=str).reshape(-1, 1)
             drug_test_arr  = np.array(X_test["drug_raw"].tolist(),  dtype=str).reshape(-1, 1)
             drug_encoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
@@ -247,10 +254,25 @@ def main():
             joblib.dump(drug_encoder, ASSETS_DIR / "drug_encoder.joblib")
             print(f"    -> drug_encoder ajustado en X_train ({len(drug_encoder.categories_[0])} fármacos)")
         else:
-            X_train["drug_encoded"] = X_train["drug_raw"].astype(float)
-            X_test["drug_encoded"]  = X_test["drug_raw"].astype(float)
+            # Intentar interpretarlo como número precodificado
+            try:
+                X_train["drug_encoded"] = pd.to_numeric(X_train["drug_raw"], errors="raise").fillna(-1)
+                X_test["drug_encoded"]  = pd.to_numeric(X_test["drug_raw"], errors="raise").fillna(-1)
+                print(f"    -> drug_encoded usado directamente de valores precodificados")
+            except (ValueError, TypeError):
+                # Si no es un número, encodearlo como categoría
+                drug_train_arr = np.array(X_train["drug_raw"].tolist(), dtype=str).reshape(-1, 1)
+                drug_test_arr  = np.array(X_test["drug_raw"].tolist(),  dtype=str).reshape(-1, 1)
+                drug_encoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
+                X_train["drug_encoded"] = drug_encoder.fit_transform(drug_train_arr).ravel()
+                X_test["drug_encoded"]  = drug_encoder.transform(drug_test_arr).ravel()
+                joblib.dump(drug_encoder, ASSETS_DIR / "drug_encoder.joblib")
+                print(f"    -> drug_encoder creado para valores de texto ({len(drug_encoder.categories_[0])} categorías)")
 
-        if not ya_codificado_pt:
+        # PT ENCODING
+        # Si tenemos texto crudo (pt), crear encoder
+        # Si no, intentar usar valores precodificados
+        if "pt" in df.columns:
             pt_train_arr = np.array(pt_train_masked.tolist(), dtype=str).reshape(-1, 1)
             pt_test_arr  = np.array(pt_test_masked.tolist(),  dtype=str).reshape(-1, 1)
             pt_encoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
@@ -260,8 +282,21 @@ def main():
             n_cats = len(pt_encoder.categories_[0])
             print(f"    -> pt_encoder ajustado en X_train ({n_cats} categorías, incl. centinela)")
         else:
-            X_train["pt_encoded"] = X_train["pt_raw"].astype(float)
-            X_test["pt_encoded"]  = X_test["pt_raw"].astype(float)
+            # Intentar interpretarlo como número precodificado
+            try:
+                X_train["pt_encoded"] = pd.to_numeric(X_train["pt_raw"], errors="raise").fillna(-1)
+                X_test["pt_encoded"]  = pd.to_numeric(X_test["pt_raw"], errors="raise").fillna(-1)
+                print(f"    -> pt_encoded usado directamente de valores precodificados")
+            except (ValueError, TypeError):
+                # Si no es un número, encodearlo como categoría
+                pt_train_arr = np.array(X_train["pt_raw"].tolist(), dtype=str).reshape(-1, 1)
+                pt_test_arr  = np.array(X_test["pt_raw"].tolist(),  dtype=str).reshape(-1, 1)
+                pt_encoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
+                X_train["pt_encoded"] = pt_encoder.fit_transform(pt_train_arr).ravel()
+                X_test["pt_encoded"]  = pt_encoder.transform(pt_test_arr).ravel()
+                joblib.dump(pt_encoder, ASSETS_DIR / "pt_encoder.joblib")
+                n_cats = len(pt_encoder.categories_[0])
+                print(f"    -> pt_encoder creado para valores de texto ({n_cats} categorías)")
 
         # Conservar solo las columnas finales de features
         FINAL_COLS = ["age", "sex_encoded", "drug_encoded", "pt_encoded"]

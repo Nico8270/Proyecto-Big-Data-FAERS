@@ -76,6 +76,17 @@ def main():
         X_test = df_test[FEATURE_COLS].copy()
         y_test = df_test["severity_level"].astype(int)
 
+        # --- Reescalar etiquetas de [1,2,3,4,5] a [0,1,2,3,4] para comparación ---
+        # El modelo fue entrenado con etiquetas en [0,1,2,3,4], así que las predicciones
+        # estarán en ese rango. Necesitamos hacer el mismo shift en y_test.
+        class_labels = sorted(y_test.unique().tolist())
+        label_shift  = min(class_labels)
+        
+        if label_shift != 0:
+            y_test_shifted = y_test - label_shift
+        else:
+            y_test_shifted = y_test
+        
         print(f"\n  Distribución real de clases en X_test (datos originales):")
         for cls, cnt in sorted(y_test.value_counts().items()):
             print(f"    Clase {cls}: {cnt:,} muestras")
@@ -85,9 +96,9 @@ def main():
         y_pred = clf.predict(X_test)
 
         # --- Step 4: Calcular métricas de clasificación ---
-        accuracy = accuracy_score(y_test, y_pred)
-        conf_mat = confusion_matrix(y_test, y_pred)
-        clf_rep  = classification_report(y_test, y_pred, output_dict=True)
+        accuracy = accuracy_score(y_test_shifted, y_pred)
+        conf_mat = confusion_matrix(y_test_shifted, y_pred)
+        clf_rep  = classification_report(y_test_shifted, y_pred, output_dict=True)
 
         dur = time.time() - t0
 
@@ -101,8 +112,13 @@ def main():
         print("  " + "-" * 56)
 
         gravedades = {1: "Leve", 2: "Moderado", 3: "Importante", 4: "Grave", 5: "Muy Grave"}
-        for k, v in gravedades.items():
-            metrics = clf_rep.get(str(k), {})
+        for shifted_k in sorted(clf_rep.keys()):
+            if shifted_k == "accuracy" or not shifted_k.isdigit():
+                continue
+            shifted_k_int = int(shifted_k)
+            orig_k = shifted_k_int + label_shift
+            v = gravedades.get(orig_k, f"Clase {orig_k}")
+            metrics = clf_rep.get(str(shifted_k_int), {})
             if metrics:
                 print("  {:<12} {:>9.2f}% {:>9.2f}% {:>9.2f}% {:>10,}".format(
                     v,
@@ -118,22 +134,42 @@ def main():
         print("  " + "-" * 56)
         for i, row in enumerate(conf_mat):
             row_str = " ".join("{:>8,}".format(val) for val in row)
-            print(f"  Clase {i+1} real    | {row_str}")
+            orig_class = i + label_shift
+            print(f"  Clase {orig_class} real    | {row_str}")
         print("  " + "-" * 56)
         print(f"\n  Tiempo de evaluación: {dur:.1f} segundos")
 
         # --- Step 5: Guardar métricas en JSON ---
         metrics_json = REPORTS_DIR / "model_evaluation_metrics.json"
+        
+        # Revertir el shift en el classification_report para guardar con etiquetas originales
+        clf_rep_original = {}
+        for key, value in clf_rep.items():
+            if isinstance(value, dict) and "precision" in value:
+                # Es una métrica por clase (no "accuracy", "macro avg", etc)
+                try:
+                    shifted_cls = int(key)
+                    orig_cls = shifted_cls + label_shift
+                    clf_rep_original[str(orig_cls)] = value
+                except (ValueError, TypeError):
+                    clf_rep_original[key] = value
+            else:
+                clf_rep_original[key] = value
+        
         eval_data = {
             "accuracy":               float(accuracy),
-            "classification_report":  clf_rep,
+            "classification_report":  clf_rep_original,
             "confusion_matrix":       conf_mat.tolist(),
             "n_test_samples":         int(len(y_test)),
+            "label_shift_applied":    int(label_shift),
+            "original_class_range":   class_labels,
+            "model_class_range":      [c - label_shift for c in class_labels],
             "model_type":             "Random Forest Multiclass (depth=16, SMOTE on train only)",
             "data_leakage_free":      True,
             "nota":                   (
                 "X_test proviene de train_test_split aplicado ANTES de SMOTE. "
-                "No contiene muestras sintéticas. Las métricas son honestas."
+                "No contiene muestras sintéticas. Las métricas son honestas. "
+                "Las clases fueron desplazadas durante entrenamiento para compatibilidad con XGBoost."
             ),
         }
         with open(metrics_json, "w", encoding="utf-8") as f:

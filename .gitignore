@@ -1,0 +1,85 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Datos crudos (demasiado grandes para Git)
+data/raw/faers/*.txt
+data/raw/faers/*.TXT
+
+# Archivos generados por la ejecución del pipeline
+data/staging/
+data/clean_data/
+data/balanced_data/
+data/aggregated/
+data/alerts/
+data/joined/
+data/streaming_raw/
+outputs/balance_reports/
+outputs/eda_results/
+logs/
+
+# Outputs ignorados, con excepciones: artefactos que el paper promete
+outputs/mapreduce_results/*
+!outputs/mapreduce_results/top_safety_signals.csv
+outputs/model_assets/*
+!outputs/model_assets/model_comparison.json
+!outputs/model_assets/leaking_pt_terms.json
+!outputs/model_assets/*.png
+
+# Caches locales de timing
+src/**/.*.json
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporales
+*.tmp
+*.temp
+*.log
+
+# Documentacion oficial FAERS (descargable con los datos)
+data/raw/faers/*.pdf
+data/raw/faers/ASCII/

@@ -106,13 +106,20 @@ def main():
 
         # --- Step 1: Ejecución de la Predicción con el Modelo de IA ---
         print("  [Inferencia] Calculando gravedades con el RandomForest de IA...")
-        pred_severidades = clf.predict(X)
+        pred_severidades_shifted = clf.predict(X)
+        
+        # Revertir el shift de etiquetas: el modelo predice en [0,1,2,3,4]
+        # pero necesitamos convertir a [1,2,3,4,5] para consistencia con el dataset original
+        label_shift = 1  # Mismo shift que se aplicó en entrenamiento
+        pred_severidades = pred_severidades_shifted + label_shift
+        
         df_inf["predicted_severity"] = pred_severidades.astype(int)
 
         # Extraer probabilidades para la métrica de confianza (Score de riesgo)
         pred_probs = clf.predict_proba(X)
         # Tomar la probabilidad máxima de la clase predicha como confianza del modelo
-        df_inf["confidence_score"] = [float(probs[pred - 1]) for probs, pred in zip(pred_probs, df_inf["predicted_severity"])]
+        # pred_severidades_shifted está en [0,1,2,3,4], así que indexar directamente
+        df_inf["confidence_score"] = [float(probs[pred]) for probs, pred in zip(pred_probs, pred_severidades_shifted)]
 
         # --- Step 2: Filtrado y Creación de Alertas de Alto Riesgo ---
         # Alertas críticas: Predicciones de severidad Grave (4) o Muy Grave (5)
